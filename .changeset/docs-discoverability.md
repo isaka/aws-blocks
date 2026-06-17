@@ -1,6 +1,6 @@
 ---
-"@aws-blocks/blocks": minor
-"@aws-blocks/create-blocks-app": minor
+"@aws-blocks/blocks": patch
+"@aws-blocks/create-blocks-app": patch
 ---
 
 Add in-repo Building Block docs discoverability.
