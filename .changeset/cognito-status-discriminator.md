@@ -1,5 +1,6 @@
 ---
 "@aws-blocks/bb-auth-cognito": patch
+"@aws-blocks/blocks": patch
 ---
 
 fix(bb-auth-cognito): discriminate `SignInResult` on a string `status` field
