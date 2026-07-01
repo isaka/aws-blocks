@@ -30,8 +30,8 @@ export interface AgentConfig<TContext = DefaultToolContext> {
     inferenceOnly?: boolean;
     logger?: ChildLogger;
     // (undocumented)
-    model: {
-        deployed: ModelConfig | ModelConfig[];
+    model?: {
+        deployed?: ModelConfig | ModelConfig[];
         local?: ModelConfig | ModelConfig[];
     };
     // (undocumented)
