@@ -524,3 +524,98 @@ is a candidate follow-up.
   `engines/pg-client-engine.ts`, `db-pull/{templates.ts, introspect.ts, pull.ts}`,
   `migrations/baseline.ts`.
 
+
+## D-014: External-DB connection-string SSM parameter is stack-scoped via a single shared `getStackName`
+
+**Date**: 2026-06-26
+**Authors:** mehrishi
+
+### Context
+
+The external-database connection string was stored in an SSM parameter named only
+by stage (`/blocks/{stage}/db-connection-string`). With no app identity in the
+name, two Blocks apps deployed to the same account + region + stage computed the
+same name and silently overwrote each other's credentials — the second app's
+Lambda then read the wrong database with no error. An earlier attempt to add a
+discriminator derived from the connection string / database ref broke silently,
+because the write side (live environment) and the read side (a ref captured at
+`db pull` time) derived it differently and diverged.
+
+D-012 (PR #51) made the deployment's stack name deterministic and committed
+(`.blocks/config.json`), so it is computable **before** `cdk synth`, not only
+inside the construct tree.
+
+### Decision
+
+The parameter name is stack-scoped: `/<stackName>-db-url`, where `stackName` comes
+from a single new `getStackName({ sandbox, projectRoot })` helper. That helper is
+also the one place the CDK templates compute the stack name (the `-prod` / sandbox
+suffix assembly that D-012 left duplicated inline across templates is removed).
+
+`dbConnectionParameterName(stackName)` derives the parameter name from a stack name
+the caller computes via `getStackName({ sandbox, projectRoot })`. Both the
+pre-deploy writer (`ensureSecrets`) and the `db pull` generated wiring at synth
+compute the stack name the same way, with identical inputs supplied by the same
+deploy/sandbox orchestrator (`projectRoot` + stage), so the written name and the
+read name cannot diverge. At runtime the app reads the synth-stamped
+`BLOCKS_SSM_PARAM_DB_URL` and never recomputes.
+
+### Rationale
+
+- **Uniqueness (no collision):** the name embeds the per-app `stackId`, so two
+  apps never share a name.
+- **Write == read by construction:** one function, one set of inputs from one
+  orchestrator. The dual-derivation divergence that broke the earlier ref-based
+  attempt cannot recur.
+- **Discriminator is stack identity, not the connection string:** the name is
+  independent of which database the app points at, derived from committed config.
+- **No post-deploy machinery:** because the name is computable pre-synth (D-012),
+  the writer writes directly to the final name before deploy. No CfnOutput
+  round-trip, no after-deploy write-back, no in-stack staging-copy custom resource.
+- **Fail fast, not silent:** `getStackName` throws an actionable error when
+  `.blocks/config.json` is missing, rather than falling back to a guessed name.
+
+### Alternatives Considered
+
+- **Post-deploy write via CfnOutput** (PR #39's first design): synth emits the
+  resolved name, the writer reads it from stack outputs after `cdk deploy`.
+  Rejected as unnecessary once D-012 makes the name pre-computable; it also adds a
+  first-deploy window and ordering complexity.
+- **In-stack staging-copy (`copyFrom`)** (PR #39 spike): mint a staging parameter,
+  copy it to the final name inside the CloudFormation transaction. Rejected for
+  the same reason — it solves "the name is unknown pre-synth," which is no longer
+  true. It is the correct fallback only if external DB ever runs inside a nested /
+  Amplify Gen2 stack, where the stack name is tokenized at synth.
+
+### Tradeoff
+
+Writing before deploy means the connection string is persisted to SSM even if the
+deploy later fails. Accepted: it is the customer's own value, the write is
+idempotent and overwritten on the next deploy, and this matches pre-existing
+behavior. The staging-copy spike was the only variant that made the write atomic
+with the stack; that property is consciously traded for the removal of all
+write-back/staging machinery.
+
+### Compatibility
+
+- **Breaking signature change:** `dbConnectionParameterName` now takes a
+  `stackName` string (was `(stage: string)`). `getStackName` now takes a single
+  options object `{ sandbox, projectRoot? }` (was `(projectRoot, { sandbox })`).
+  The package is pre-1.0 (preview) and no external consumer has committed old-form
+  wiring, so this ships as a patch. Apps with stale generated `supabase.ts` must
+  run `npx bb-data pull` to regenerate.
+- **Prerequisite (D-012):** `getStackName` reads `stackId` from
+  `.blocks/config.json`; it throws if absent. Pre-PR #51 apps migrating to this
+  version must first set `stackId` in `.blocks/config.json` (see D-012 "Migration
+  scope" for instructions) or deploys will fail at the `ensureSecrets` step.
+- The previous stage-only parameter (`/blocks/{stage}/db-connection-string`) is
+  orphaned and self-heals on the next deploy — the old value remains in SSM but is
+  no longer read or written.
+
+### References
+
+- Supersedes the stage-only `dbConnectionParameterName(stage)`.
+- Builds on D-012 (PR #51, committed `stackId`).
+- Code: `packages/core/src/scripts/stack-id.ts` (`getStackName`),
+  `packages/core/src/db-naming.ts`, `packages/core/src/scripts/ensure-secrets.ts`,
+  `packages/bb-data/src/db-pull/generate.ts`.
