@@ -1,5 +1,11 @@
 # @aws-blocks/create-blocks-app
 
+## 0.1.12
+
+### Patch Changes
+
+- ec1fc6c: Fix multi-tenant data leak in demo template: `listTodos()` no longer falls back to `scan()` when no `sortBy` is provided. All paths now use `query()` with a `userId` filter, ensuring users only see their own todos.
+
 ## 0.1.11
 
 ### Patch Changes
