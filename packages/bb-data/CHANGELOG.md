@@ -1,5 +1,11 @@
 # @aws-blocks/bb-data
 
+## 0.2.2
+
+### Patch Changes
+
+- 4a87ed1: Recover incomplete local PGlite data directories before opening the database so an interrupted first boot does not permanently prevent local dev startup.
+
 ## 0.2.1
 
 ### Patch Changes
