@@ -1,5 +1,22 @@
 # @aws-blocks/bb-agent
 
+## 0.7.1
+
+### Patch Changes
+
+- chore: automated dependency bump (2026-11-03)
+- Updated dependencies [c1fabce]
+- Updated dependencies [c1fabce]
+- Updated dependencies [fcf087d]
+- Updated dependencies [c1fabce]
+- Updated dependencies [c1fabce]
+- Updated dependencies [bfdd06f]
+  - @aws-blocks/core@0.9.0
+  - @aws-blocks/bb-distributed-table@0.3.1
+  - @aws-blocks/bb-file-bucket@0.4.1
+  - @aws-blocks/bb-logger@0.3.1
+  - @aws-blocks/bb-realtime@0.5.1
+
 ## 0.7.0
 
 ### Minor Changes

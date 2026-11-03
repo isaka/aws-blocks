@@ -1,5 +1,79 @@
 # @aws-blocks/blocks
 
+## 0.9.1
+
+### Patch Changes
+
+- 320e529: AuthBasic now invalidates every outstanding session when a user resets their
+  password. Previously `confirmResetPassword` only changed the credential, so a
+  token stolen before the reset kept authenticating until it expired — the reset
+  did not actually lock the attacker out. Each session JWT now carries the user's
+  current session epoch (an `ep` claim); `confirmResetPassword` bumps a per-user
+  epoch counter, and every auth check rejects a token whose epoch predates it
+  (reported as `SessionRevokedException`), so a password reset signs the user out
+  on all devices.
+
+  Tokens issued before this change have no epoch claim and are treated as the
+  lowest epoch, so the first reset invalidates them too. If the sessions cannot be
+  invalidated, `confirmResetPassword` throws `SignOutIncompleteException` (503)
+  and leaves the password unchanged; request a new reset code and try again. The
+  umbrella `@aws-blocks/blocks` is bumped because the bundled `bb-auth-basic`
+  README/DESIGN docs it mirrors have changed.
+
+- c1fabce: feat(core): honor `BLOCKS_LOG_LEVEL` and `BLOCKS_LOG_STREAM` in the lifecycle scripts
+
+  `deploy`, `destroy`, `startSandbox`, `destroySandbox` and `startDevServer` from `@aws-blocks/core/scripts` now read `BLOCKS_LOG_LEVEL`:
+
+  - unset (or any unrecognised value): output is unchanged.
+  - `quiet`: errors and final results only.
+  - `normal`: short progress steps; CDK output is condensed into milestones and a resource count, and failure and rollback lines still print.
+  - `verbose`: the raw CDK output, as today.
+  - `debug`: `verbose` plus stack traces for errors the scripts catch and report as warnings.
+
+  The `BLOCKS_DEPLOYED …` line, the deployment-target summary, the API and frontend URLs and error messages print at every level. At `quiet` and `normal` the last 500 lines of hidden CDK output are kept, and when a deploy, destroy or `cdk watch` deploy fails they are printed to stderr before the error, so the failure never needs a re-run to diagnose. A `cdk watch` deploy that fails during synth, which CDK reports without a `❌` line, counts as failed too.
+
+  The external-database migration step and the dev server's `secret()`/`config()` type generation follow the level as well: at `quiet` the migration's output and warnings (its stdout and stderr) are hidden, and printed to stderr only if the migration fails; type-generation notices are hidden at `quiet` and `normal`.
+
+  `BLOCKS_LOG_STREAM=stderr` moves progress to stderr: progress steps, CDK milestones, raw CDK output, streamed CloudFormation events, migration output and type-generation notices go to stderr, and stdout keeps only the results (the deployment target, `BLOCKS_DEPLOYED` and the final URLs). `blocks-generate-spec` follows it too: its progress lines go to stderr, and stdout keeps the `✅ OpenRPC spec written to …` line. Without the variable, the streams are unchanged. `@aws-blocks/core/scripts` exports `log`, the logger these scripts print progress with.
+
+- Updated dependencies [320e529]
+- Updated dependencies [c1fabce]
+- Updated dependencies [c1fabce]
+- Updated dependencies [c1fabce]
+- Updated dependencies [fcf087d]
+- Updated dependencies [c1fabce]
+- Updated dependencies [c1fabce]
+- Updated dependencies
+- Updated dependencies [1f565bd]
+- Updated dependencies [c1fabce]
+- Updated dependencies [bfdd06f]
+  - @aws-blocks/bb-auth-basic@0.3.0
+  - @aws-blocks/bb-data@0.5.1
+  - @aws-blocks/core@0.9.0
+  - @aws-blocks/bb-agent@0.7.1
+  - @aws-blocks/bb-auth-oidc@0.3.1
+  - @aws-blocks/hosting@0.6.0
+  - @aws-blocks/auth-common@0.3.1
+  - @aws-blocks/bb-app-setting@0.4.1
+  - @aws-blocks/bb-async-job@0.3.1
+  - @aws-blocks/bb-auth-cognito@0.2.1
+  - @aws-blocks/bb-compute@0.2.1
+  - @aws-blocks/bb-container-compute@0.2.1
+  - @aws-blocks/bb-cron-job@0.4.1
+  - @aws-blocks/bb-dashboard@0.3.1
+  - @aws-blocks/bb-distributed-data@0.3.1
+  - @aws-blocks/bb-distributed-table@0.3.1
+  - @aws-blocks/bb-email-client@0.2.1
+  - @aws-blocks/bb-file-bucket@0.4.1
+  - @aws-blocks/bb-knowledge-base@0.3.1
+  - @aws-blocks/bb-kv-store@0.4.1
+  - @aws-blocks/bb-lambda-compute@0.7.1
+  - @aws-blocks/bb-logger@0.3.1
+  - @aws-blocks/bb-metrics@0.2.1
+  - @aws-blocks/bb-realtime@0.5.1
+  - @aws-blocks/bb-secret@0.3.1
+  - @aws-blocks/bb-tracer@0.3.1
+
 ## 0.9.0
 
 ### Minor Changes

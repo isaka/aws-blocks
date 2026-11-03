@@ -1,5 +1,23 @@
 # @aws-blocks/bb-data
 
+## 0.5.1
+
+### Patch Changes
+
+- c1fabce: fix(bb-data): `bb-data <command> --help` prints that command's usage
+
+  `bb-data migrate --help`, `status --help`, `generate-types --help` and `pull --help` (or `-h`) now print the usage and options of that command and exit 0. Before, `migrate --help` read `--help` as the migrations directory and exited 1, and `pull --help` failed without a terminal. `--help` is checked first, wherever it appears in the arguments, so a help request never opens, migrates or introspects a database and never prompts. `bb-data --help` prints the overview of every command. Without `--help`, every command behaves as before.
+
+- Updated dependencies [c1fabce]
+- Updated dependencies [c1fabce]
+- Updated dependencies [fcf087d]
+- Updated dependencies [c1fabce]
+- Updated dependencies [c1fabce]
+- Updated dependencies [bfdd06f]
+  - @aws-blocks/core@0.9.0
+  - @aws-blocks/bb-app-setting@0.4.1
+  - @aws-blocks/bb-logger@0.3.1
+
 ## 0.5.0
 
 ### Minor Changes

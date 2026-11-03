@@ -1,5 +1,17 @@
 # @aws-blocks/bb-container-compute
 
+## 0.2.1
+
+### Patch Changes
+
+- Updated dependencies [c1fabce]
+- Updated dependencies [c1fabce]
+- Updated dependencies [fcf087d]
+- Updated dependencies [c1fabce]
+- Updated dependencies [c1fabce]
+- Updated dependencies [bfdd06f]
+  - @aws-blocks/core@0.9.0
+
 ## 0.2.0
 
 ### Minor Changes

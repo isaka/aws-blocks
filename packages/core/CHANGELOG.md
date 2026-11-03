@@ -1,5 +1,52 @@
 # @aws-blocks/core
 
+## 0.9.0
+
+### Minor Changes
+
+- c1fabce: feat(core): honor `BLOCKS_LOG_LEVEL` and `BLOCKS_LOG_STREAM` in the lifecycle scripts
+
+  `deploy`, `destroy`, `startSandbox`, `destroySandbox` and `startDevServer` from `@aws-blocks/core/scripts` now read `BLOCKS_LOG_LEVEL`:
+
+  - unset (or any unrecognised value): output is unchanged.
+  - `quiet`: errors and final results only.
+  - `normal`: short progress steps; CDK output is condensed into milestones and a resource count, and failure and rollback lines still print.
+  - `verbose`: the raw CDK output, as today.
+  - `debug`: `verbose` plus stack traces for errors the scripts catch and report as warnings.
+
+  The `BLOCKS_DEPLOYED …` line, the deployment-target summary, the API and frontend URLs and error messages print at every level. At `quiet` and `normal` the last 500 lines of hidden CDK output are kept, and when a deploy, destroy or `cdk watch` deploy fails they are printed to stderr before the error, so the failure never needs a re-run to diagnose. A `cdk watch` deploy that fails during synth, which CDK reports without a `❌` line, counts as failed too.
+
+  The external-database migration step and the dev server's `secret()`/`config()` type generation follow the level as well: at `quiet` the migration's output and warnings (its stdout and stderr) are hidden, and printed to stderr only if the migration fails; type-generation notices are hidden at `quiet` and `normal`.
+
+  `BLOCKS_LOG_STREAM=stderr` moves progress to stderr: progress steps, CDK milestones, raw CDK output, streamed CloudFormation events, migration output and type-generation notices go to stderr, and stdout keeps only the results (the deployment target, `BLOCKS_DEPLOYED` and the final URLs). `blocks-generate-spec` follows it too: its progress lines go to stderr, and stdout keeps the `✅ OpenRPC spec written to …` line. Without the variable, the streams are unchanged. `@aws-blocks/core/scripts` exports `log`, the logger these scripts print progress with.
+
+- c1fabce: feat(core): read the deploy identity and credentials without deploying
+
+  `@aws-blocks/core/scripts` adds functions for tools that show what a deploy would use before running it:
+
+  - `readAwsIdentity()` returns the AWS account, caller ARN, credentials and Region that a deploy would use, verified with STS GetCallerIdentity, without deploying. Missing, expired or rejected credentials throw the same guidance the deploy prints. When no Region is set, it returns the credentials without an AWS request.
+  - `describeDeploymentCredentials()` returns the credentials label that the deploy prints and the Region, from local configuration only and without an AWS request. When environment access keys take precedence over an exported `AWS_PROFILE`, the label says so (`access keys in AWS_ACCESS_KEY_ID (used instead of AWS_PROFILE)`) and `keysOverrideProfile` is `true`.
+  - `resolveDeploymentTarget()` is now exported.
+
+  `runSecretCli` and `runConfigCli` take the `interactive` and `yes` options of `@aws-blocks/hosting`'s value CLI and pass them through.
+
+### Patch Changes
+
+- c1fabce: feat(core): report the deployed stack's outputs from `deploy()` before the liveness wait
+
+  `DeployOptions.onDeployed`, when set, is called with the stack name, API URL and frontend URL that `deploy()` read from `.blocks-sandbox/outputs.json`, right after the read and before the `--wait-live` wait. A sandbox deploy of the same app rewrites that file with only its own stack, so a launcher that reads the file after `deploy()` resolves can miss the production entry. Without the option nothing changes.
+
+- fcf087d: `BlocksStack.create()` and `BlocksBackend.create()` without a `defaults` field now fail with an error that names the fix (`defaults: sandboxMode ? BlocksPresets.sandbox : BlocksPresets.production`, with its import) and links a new guide for apps scaffolded from older `create-blocks-app` templates. Before, they threw `TypeError: Cannot read properties of undefined (reading 'vpc')`, because `cdk` runs `aws-blocks/index.cdk.ts` without type-checking. The guide, `docs/guides/upgrading-older-apps.md`, shows the `index.cdk.ts` edits for templates 0.1.0 to 0.1.19 (add `defaults`, drop the hand-written sandbox overrides) and 0.1.20 to 0.2.0 (remove `blocksStack.handler`).
+- c1fabce: fix(core): let a launcher choose the `tsx` loader for deploy client generation
+
+  The client-generation step of `deploy()` and `startSandbox()` loads the backend with `node --import tsx`, which Node resolves from the app's directory. `BLOCKS_TSX_IMPORT`, when set, replaces `tsx` with another specifier, such as the file URL of a `tsx` loader the app does not install itself. Without the variable nothing changes.
+
+- bfdd06f: Spec generation now rejects a malformed Swift or Android native package field, naming the block that declared it, as it already did for the Dart fields. A `swift.module`, `android.group`, `android.artifact`, or `android.kotlinPackage` outside its own package manager's grammar previously passed validation and was written into `x-blocks-native-packages`. A malformed `module` or `kotlinPackage` then failed in the customer's own codegen run, naming no block; no generator validates `group` or `artifact`, so a malformed value in them went undetected. `swift.identity` and `swift.product` stay non-blank only: SwiftPM derives an identity from the dependency's location and imposes no grammar on either.
+- Updated dependencies [1f565bd]
+- Updated dependencies [c1fabce]
+  - @aws-blocks/hosting@0.6.0
+  - @aws-blocks/pipeline@0.2.5
+
 ## 0.8.0
 
 ### Minor Changes
